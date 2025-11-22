@@ -104,6 +104,83 @@
   border-color: #ff9900;
 }
 
+/* Price Filter */
+.price-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.price-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-input-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.price-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #131921;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.price-input:focus {
+  outline: none;
+  border-color: #ff9900;
+  box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.1);
+}
+
+.price-input::placeholder {
+  color: #999;
+}
+
+.price-filter-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: #fff3e0;
+  border: 1px solid #ff9900;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.active-price-range {
+  font-size: 13px;
+  color: #131921;
+  font-weight: 500;
+}
+
+.clear-price-filter-btn {
+  padding: 4px 12px;
+  background-color: #ff9900;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-price-filter-btn:hover {
+  background-color: #e68900;
+}
+
+.clear-price-filter-btn:active {
+  transform: scale(0.98);
+}
+
 /* Products Content */
 .products-content {
   min-height: 400px;

@@ -7,20 +7,27 @@ import './Products.css';
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
     search: searchParams.get('search') || '',
+    minPrice: searchParams.get('minPrice') || '',
+    maxPrice: searchParams.get('maxPrice') || '',
     sort: ''
   });
 
   useEffect(() => {
     const category = searchParams.get('category');
     const search = searchParams.get('search');
-    if (category || search) {
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    if (category || search || minPrice || maxPrice) {
       setFilters({
         category: category || '',
         search: search || '',
+        minPrice: minPrice || '',
+        maxPrice: maxPrice || '',
         sort: ''
       });
     }
@@ -28,7 +35,29 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [filters]);
+  }, [filters.category, filters.search, filters.sort]);
+
+  useEffect(() => {
+    if (allProducts.length > 0) {
+      let filtered = [...allProducts];
+
+      // Filter by price range
+      if (filters.minPrice) {
+        const minPrice = parseFloat(filters.minPrice);
+        if (!isNaN(minPrice)) {
+          filtered = filtered.filter(product => product.price >= minPrice);
+        }
+      }
+      if (filters.maxPrice) {
+        const maxPrice = parseFloat(filters.maxPrice);
+        if (!isNaN(maxPrice)) {
+          filtered = filtered.filter(product => product.price <= maxPrice);
+        }
+      }
+
+      setProducts(filtered);
+    }
+  }, [allProducts, filters.minPrice, filters.maxPrice]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -39,9 +68,27 @@ const Products = () => {
       if (filters.sort) params.append('sort', filters.sort);
 
       const res = await axios.get(`/api/products?${params.toString()}`);
-      setProducts(res.data);
+      setAllProducts(res.data);
+      
+      // Filter products by price after fetching
+      let filtered = [...res.data];
+      if (filters.minPrice) {
+        const minPrice = parseFloat(filters.minPrice);
+        if (!isNaN(minPrice)) {
+          filtered = filtered.filter(product => product.price >= minPrice);
+        }
+      }
+      if (filters.maxPrice) {
+        const maxPrice = parseFloat(filters.maxPrice);
+        if (!isNaN(maxPrice)) {
+          filtered = filtered.filter(product => product.price <= maxPrice);
+        }
+      }
+      setProducts(filtered);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setAllProducts([]);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -51,6 +98,23 @@ const Products = () => {
 
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    
+    // Update URL params
+    const params = new URLSearchParams();
+    if (newFilters.category) params.set('category', newFilters.category);
+    if (newFilters.search) params.set('search', newFilters.search);
+    if (newFilters.minPrice) params.set('minPrice', newFilters.minPrice);
+    if (newFilters.maxPrice) params.set('maxPrice', newFilters.maxPrice);
+    setSearchParams(params);
+  };
+
+  const handlePriceFilterChange = (key, value) => {
+    handleFilterChange(key, value);
+  };
+
+  const clearPriceFilter = () => {
+    const newFilters = { ...filters, minPrice: '', maxPrice: '' };
     setFilters(newFilters);
     
     // Update URL params
@@ -95,6 +159,54 @@ const Products = () => {
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="filter-section">
+            <label className="filter-label">Price Range</label>
+            <div className="price-filter-container">
+              <div className="price-input-group">
+                <label className="price-input-label">Min Price ($)</label>
+                <input
+                  type="number"
+                  className="price-input"
+                  placeholder="Min"
+                  value={filters.minPrice}
+                  onChange={(e) => handlePriceFilterChange('minPrice', e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div className="price-input-group">
+                <label className="price-input-label">Max Price ($)</label>
+                <input
+                  type="number"
+                  className="price-input"
+                  placeholder="Max"
+                  value={filters.maxPrice}
+                  onChange={(e) => handlePriceFilterChange('maxPrice', e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              {(filters.minPrice || filters.maxPrice) && (
+                <div className="price-filter-active">
+                  <span className="active-price-range">
+                    {filters.minPrice && filters.maxPrice
+                      ? `$${parseFloat(filters.minPrice).toFixed(2)} - $${parseFloat(filters.maxPrice).toFixed(2)}`
+                      : filters.minPrice
+                      ? `$${parseFloat(filters.minPrice).toFixed(2)}+`
+                      : `Up to $${parseFloat(filters.maxPrice).toFixed(2)}`}
+                  </span>
+                  <button
+                    className="clear-price-filter-btn"
+                    onClick={clearPriceFilter}
+                    type="button"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
