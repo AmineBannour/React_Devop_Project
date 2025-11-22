@@ -19,6 +19,12 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -53,6 +59,45 @@ const Profile = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({
+      ...passwordData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordMessage('');
+
+    // Validation
+    if (passwordData.newPassword.length < 6) {
+      setPasswordMessage('Error: New password must be at least 6 characters long');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordMessage('Error: New password and confirm password do not match');
+      return;
+    }
+
+    try {
+      await axios.put('/api/users/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      setPasswordMessage('Password changed successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setTimeout(() => setPasswordMessage(''), 3000);
+    } catch (error) {
+      setPasswordMessage('Error: ' + (error.response?.data?.message || 'Failed to change password'));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -166,6 +211,50 @@ const Profile = () => {
 
         <button type="submit" className="btn btn-primary btn-large">
           Update Profile
+        </button>
+      </form>
+
+      <form onSubmit={handlePasswordSubmit} className="profile-form" style={{ marginTop: '30px' }}>
+        <h2>Change Password</h2>
+        {passwordMessage && (
+          <div className={passwordMessage.includes('Error') ? 'error-message' : 'success-message'}>
+            {passwordMessage}
+          </div>
+        )}
+        <div className="form-group">
+          <label>Current Password</label>
+          <input
+            type="password"
+            name="currentPassword"
+            value={passwordData.currentPassword}
+            onChange={handlePasswordChange}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>New Password</label>
+          <input
+            type="password"
+            name="newPassword"
+            value={passwordData.newPassword}
+            onChange={handlePasswordChange}
+            required
+            minLength={6}
+          />
+        </div>
+        <div className="form-group">
+          <label>Confirm New Password</label>
+          <input
+            type="password"
+            name="confirmPassword"
+            value={passwordData.confirmPassword}
+            onChange={handlePasswordChange}
+            required
+            minLength={6}
+          />
+        </div>
+        <button type="submit" className="btn btn-primary btn-large">
+          Change Password
         </button>
       </form>
     </div>
