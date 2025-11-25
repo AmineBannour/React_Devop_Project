@@ -114,9 +114,8 @@ const ProductDetails = () => {
         quantity: quantity
       });
       await fetchCart();
-      alert('Product added to cart!');
     } catch (error) {
-      alert('Error adding to cart: ' + (error.response?.data?.message || 'Unknown error'));
+      console.error('Error adding to cart:', error.response?.data?.message || 'Unknown error');
     } finally {
       setAddingToCart(false);
     }
@@ -137,7 +136,7 @@ const ProductDetails = () => {
       await fetchCart();
       navigate('/checkout');
     } catch (error) {
-      alert('Error adding to cart: ' + (error.response?.data?.message || 'Unknown error'));
+      console.error('Error adding to cart:', error.response?.data?.message || 'Unknown error');
     } finally {
       setAddingToCart(false);
     }
