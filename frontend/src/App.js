@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
+import BackToTopButton from './components/BackToTopButton';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetails from './pages/ProductDetails';
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/orders" element={<Orders />} />
               </Routes>
             </main>
+            <BackToTopButton />
           </div>
         </Router>
       </CartProvider>
