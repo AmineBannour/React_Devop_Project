@@ -24,6 +24,7 @@ const ProductDetails = () => {
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [userReview, setUserReview] = useState(null);
+  const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
     fetchProduct();
@@ -235,6 +236,64 @@ const ProductDetails = () => {
     );
   };
 
+  const handleShare = async () => {
+    const productUrl = `${window.location.origin}/products/${id}`;
+    
+    // Try to use Web Share API if available (mobile devices)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product?.name || 'Check out this product',
+          text: product?.description || 'Check out this amazing product!',
+          url: productUrl
+        });
+        setShareMessage('Shared successfully!');
+      } catch (error) {
+        // User cancelled or error occurred, fall back to copy
+        if (error.name !== 'AbortError') {
+          copyToClipboard(productUrl);
+        }
+      }
+    } else {
+      // Fall back to copying to clipboard
+      copyToClipboard(productUrl);
+    }
+    
+    // Clear message after 3 seconds
+    setTimeout(() => setShareMessage(''), 3000);
+  };
+
+  const copyToClipboard = (text) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        setShareMessage('✓ Link copied to clipboard!');
+      }).catch(() => {
+        // Fallback for older browsers
+        fallbackCopyToClipboard(text);
+      });
+    } else {
+      fallbackCopyToClipboard(text);
+    }
+  };
+
+  const fallbackCopyToClipboard = (text) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setShareMessage('✓ Link copied to clipboard!');
+    } catch (err) {
+      setShareMessage('Failed to copy link');
+    }
+    document.body.removeChild(textArea);
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -284,8 +343,28 @@ const ProductDetails = () => {
 
         {/* Info Section */}
         <div className="product-info-section">
-          <h1 className="product-title">{product.name}</h1>
-          
+          <div className="product-title-row">
+            <h1 className="product-title">{product.name}</h1>
+            <button
+              className="share-btn"
+              onClick={handleShare}
+              title="Share this product"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span>Share</span>
+            </button>
+          </div>
+          {shareMessage && (
+            <div className={`share-message ${shareMessage.includes('Copied') ? 'success' : ''}`}>
+              {shareMessage}
+            </div>
+          )}
           <div className="product-rating-section">
             {renderStars(product.rating || 0)}
             <span className="rating-number">{product.rating?.toFixed(1) || '0.0'}</span>
@@ -567,4 +646,3 @@ const ProductDetails = () => {
 };
 
 export default ProductDetails;
-
