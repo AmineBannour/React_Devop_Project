@@ -9,17 +9,25 @@ import './ProductDetails.css';
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
   const { fetchCart } = useContext(CartContext);
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [imageZoom, setImageZoom] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [userReview, setUserReview] = useState(null);
 
   useEffect(() => {
     fetchProduct();
+    fetchReviews();
   }, [id]);
 
   const fetchProduct = async () => {
@@ -30,6 +38,31 @@ const ProductDetails = () => {
       console.error('Error fetching product:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      const res = await axios.get(`/api/reviews/product/${id}`);
+      setReviews(res.data);
+      
+      // Check if current user has a review
+      if (isAuthenticated && user) {
+        const review = res.data.find(r => {
+          const reviewUserId = r.user?._id || r.user;
+          return reviewUserId === user._id || reviewUserId === user._id?.toString();
+        });
+        if (review) {
+          setUserReview(review);
+          setReviewRating(review.rating);
+          setReviewComment(review.comment);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setReviewsLoading(false);
     }
   };
 
@@ -110,6 +143,99 @@ const ProductDetails = () => {
     }
   };
 
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (!reviewComment.trim()) {
+      alert('Please enter a comment');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      if (userReview) {
+        // Update existing review
+        await axios.put(`/api/reviews/${userReview._id}`, {
+          rating: reviewRating,
+          comment: reviewComment
+        });
+        alert('Review updated successfully!');
+      } else {
+        // Create new review
+        await axios.post('/api/reviews', {
+          productId: id,
+          rating: reviewRating,
+          comment: reviewComment
+        });
+        alert('Review submitted successfully!');
+      }
+      
+      // Refresh reviews and product
+      await fetchReviews();
+      await fetchProduct();
+      setShowReviewForm(false);
+      setReviewComment('');
+      setReviewRating(5);
+    } catch (error) {
+      alert('Error submitting review: ' + (error.response?.data?.message || 'Unknown error'));
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!userReview) return;
+    
+    if (!window.confirm('Are you sure you want to delete your review?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/reviews/${userReview._id}`);
+      alert('Review deleted successfully!');
+      setUserReview(null);
+      setReviewComment('');
+      setReviewRating(5);
+      await fetchReviews();
+      await fetchProduct();
+    } catch (error) {
+      alert('Error deleting review: ' + (error.response?.data?.message || 'Unknown error'));
+    }
+  };
+
+  const renderStarInput = () => {
+    return (
+      <div className="star-input">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            className={`star-btn ${star <= reviewRating ? 'active' : ''}`}
+            onClick={() => setReviewRating(star)}
+            onMouseEnter={(e) => {
+              if (!submittingReview) {
+                e.target.closest('.star-input').querySelectorAll('.star-btn').forEach((btn, idx) => {
+                  if (idx < star) btn.classList.add('hover');
+                });
+              }
+            }}
+            onMouseLeave={() => {
+              document.querySelectorAll('.star-btn').forEach(btn => btn.classList.remove('hover'));
+            }}
+          >
+            ★
+          </button>
+        ))}
+        <span className="rating-label">{reviewRating} {reviewRating === 1 ? 'star' : 'stars'}</span>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -164,9 +290,15 @@ const ProductDetails = () => {
           <div className="product-rating-section">
             {renderStars(product.rating || 0)}
             <span className="rating-number">{product.rating?.toFixed(1) || '0.0'}</span>
-            <Link to="#" className="reviews-link">
+            <span 
+              className="reviews-link"
+              onClick={() => {
+                document.querySelector('.reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               ({product.numReviews || 0} {product.numReviews === 1 ? 'review' : 'reviews'})
-            </Link>
+            </span>
           </div>
 
           <div className="price-section">
@@ -275,6 +407,149 @@ const ProductDetails = () => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="reviews-section">
+        <div className="reviews-header">
+          <h2>Customer Reviews</h2>
+          {isAuthenticated && !userReview && (
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowReviewForm(!showReviewForm)}
+            >
+              {showReviewForm ? 'Cancel Review' : 'Write a Review'}
+            </button>
+          )}
+        </div>
+
+        {/* Review Form */}
+        {showReviewForm && isAuthenticated && !userReview && (
+          <div className="review-form-container">
+            <h3>Write Your Review</h3>
+            <form onSubmit={handleSubmitReview} className="review-form">
+              <div className="form-group">
+                <label>Rating</label>
+                {renderStarInput()}
+              </div>
+              <div className="form-group">
+                <label htmlFor="review-comment">Your Review</label>
+                <textarea
+                  id="review-comment"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Share your experience with this product..."
+                  rows="5"
+                  maxLength="1000"
+                  required
+                />
+                <span className="char-count">{reviewComment.length}/1000</span>
+              </div>
+              <button 
+                type="submit" 
+                className="btn btn-submit-review"
+                disabled={submittingReview || !reviewComment.trim()}
+              >
+                {submittingReview ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* User's Existing Review */}
+        {userReview && (
+          <div className="user-review-card">
+            <div className="review-card-header">
+              <div>
+                <h4>Your Review</h4>
+                <div className="review-rating">
+                  {renderStars(userReview.rating)}
+                </div>
+              </div>
+              <div className="review-actions">
+                <button 
+                  className="btn-edit-review"
+                  onClick={() => setShowReviewForm(!showReviewForm)}
+                >
+                  {showReviewForm ? 'Cancel' : 'Edit'}
+                </button>
+                <button 
+                  className="btn-delete-review"
+                  onClick={handleDeleteReview}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+            {!showReviewForm ? (
+              <p className="review-comment">{userReview.comment}</p>
+            ) : (
+              <form onSubmit={handleSubmitReview} className="review-form">
+                <div className="form-group">
+                  <label>Rating</label>
+                  {renderStarInput()}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="edit-review-comment">Your Review</label>
+                  <textarea
+                    id="edit-review-comment"
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Share your experience with this product..."
+                    rows="5"
+                    maxLength="1000"
+                    required
+                  />
+                  <span className="char-count">{reviewComment.length}/1000</span>
+                </div>
+                <button 
+                  type="submit" 
+                  className="btn btn-submit-review"
+                  disabled={submittingReview || !reviewComment.trim()}
+                >
+                  {submittingReview ? 'Updating...' : 'Update Review'}
+                </button>
+              </form>
+            )}
+            <span className="review-date">
+              {new Date(userReview.createdAt).toLocaleDateString()}
+              {userReview.updatedAt !== userReview.createdAt && ' (edited)'}
+            </span>
+          </div>
+        )}
+
+        {/* Reviews List */}
+        {reviewsLoading ? (
+          <div className="loading-reviews">
+            <div className="loading-spinner"></div>
+            <p>Loading reviews...</p>
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="no-reviews">
+            <p>No reviews yet. Be the first to review this product!</p>
+          </div>
+        ) : (
+          <div className="reviews-list">
+            {reviews
+              .filter(review => !userReview || review._id !== userReview._id)
+              .map((review) => (
+                <div key={review._id} className="review-card">
+                  <div className="review-card-header">
+                    <div>
+                      <h4>{review.user?.name || 'Anonymous'}</h4>
+                      <div className="review-rating">
+                        {renderStars(review.rating)}
+                      </div>
+                    </div>
+                    <span className="review-date">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="review-comment">{review.comment}</p>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
 
       {/* Related Products */}
