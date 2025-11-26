@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+
+    triggers {
+        pollSCM('* * * * *')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+
+        stage('Setup') {
+            steps {
+                sh 'mkdir -p artifacts'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'docker-compose build'
+            }
+        }
+
+        stage('Run (Docker)') {
+            steps {
+                sh 'docker-compose up -d'
+                sh 'sleep 5'
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh 'chmod +x backend/smoke-test-backend.sh'
+                sh 'chmod +x frontend/smoke-test-frontend.sh'
+                sh './backend/smoke-test-backend.sh'
+                sh './frontend/smoke-test-frontend.sh'
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                sh 'docker-compose down'
+            }
+        }
+    }
+
+    post {
+        success { echo "PR Pipeline PASSED" }
+        failure { echo "PR Pipeline FAILED" }
+    }
+}

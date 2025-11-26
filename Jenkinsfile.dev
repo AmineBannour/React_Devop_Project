@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+
+        stage('Setup') {
+            steps { sh 'mkdir -p artifacts' }
+        }
+
+        stage('Build') {
+            steps { sh 'docker-compose build' }
+        }
+
+        stage('Run (Docker)') {
+            steps {
+                sh 'docker-compose up -d'
+                sh 'sleep 5'
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh './backend/smoke-test-backend.sh'
+                sh './frontend/smoke-test-frontend.sh'
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+            }
+        }
+
+        stage('Cleanup') {
+            steps { sh 'docker-compose down' }
+        }
+    }
+}

@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        TAG = "${env.GIT_TAG_NAME ?: env.BUILD_NUMBER}"
+    }
+
+    triggers {
+        pollSCM('H/15 * * * *')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+
+        stage('Setup') {
+            steps { sh 'mkdir -p artifacts' }
+        }
+
+        stage('Build (Parallel)') {
+            parallel {
+
+                stage('Node18 Runtime') {
+                    steps {
+                        sh 'docker build --build-arg NODE_VERSION=18 -t mern-backend:${TAG}-node18 ./backend'
+                        sh 'docker build --build-arg NODE_VERSION=18 -t mern-frontend:${TAG}-node18 ./frontend'
+                    }
+                }
+
+                stage('Node20 Runtime') {
+                    steps {
+                        sh 'docker build --build-arg NODE_VERSION=20 -t mern-backend:${TAG}-node20 ./backend'
+                        sh 'docker build --build-arg NODE_VERSION=20 -t mern-frontend:${TAG}-node20 ./frontend'
+                    }
+                }
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                sh "echo 'Release: ${TAG}' > artifacts/release.txt"
+                archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
+            }
+        }
+    }
+}
