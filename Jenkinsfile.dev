@@ -8,15 +8,21 @@ pipeline {
     stages {
 
         stage('Checkout') {
-            steps { checkout scm }
+            steps { 
+                checkout scm 
+            }
         }
 
         stage('Setup') {
-            steps { sh 'mkdir -p artifacts' }
+            steps { 
+                sh 'mkdir -p artifacts' 
+            }
         }
 
         stage('Build') {
-            steps { sh 'docker-compose build' }
+            steps { 
+                sh 'docker-compose build' 
+            }
         }
 
         stage('Run (Docker)') {
@@ -28,6 +34,11 @@ pipeline {
 
         stage('Smoke Test') {
             steps {
+                // 🔧 IMPORTANT FIX: Allow scripts to run
+                sh 'chmod +x backend/smoke-test-backend.sh'
+                sh 'chmod +x frontend/smoke-test-frontend.sh'
+
+                // Run smoke tests
                 sh './backend/smoke-test-backend.sh'
                 sh './frontend/smoke-test-frontend.sh'
             }
@@ -40,7 +51,9 @@ pipeline {
         }
 
         stage('Cleanup') {
-            steps { sh 'docker-compose down' }
+            steps { 
+                sh 'docker-compose down' 
+            }
         }
     }
 }
