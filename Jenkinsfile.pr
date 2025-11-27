@@ -7,9 +7,7 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps { checkout scm }
-        }
+        stage('Checkout') { steps { checkout scm } }
 
         stage('Setup') {
             steps {
@@ -17,11 +15,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                sh 'docker-compose build'
-            }
-        }
+        stage('Build') { steps { sh 'docker-compose build' } }
 
         stage('Run (Docker)') {
             steps {
@@ -33,15 +27,31 @@ pipeline {
         stage('Connect Jenkins to Docker Network') {
             steps {
                 script {
-                    // Convert job name to lowercase and replace spaces with underscores (Docker's pattern)
-                    def network = sh(
-                        script: "docker network ls --format '{{.Name}}' | grep ${env.WORKSPACE.toLowerCase().replaceAll(' ', '_')}_default || true",
+
+                    // Example JOB_NAME: MERN-PR/dev
+                    def raw = env.JOB_NAME
+
+                    // sanitize: convert job name to network name
+                    // MERN-PR/dev → mern-pr_dev
+                    def cleaned = raw
+                        .replaceAll(' » ', '_')
+                        .replaceAll('/', '_')
+                        .replaceAll(' ', '_')
+                        .toLowerCase()
+
+                    // final docker network: mern-pr_dev_default
+                    def networkName = "${cleaned}_default"
+
+                    echo "Searching for docker network: ${networkName}"
+
+                    def found = sh(
+                        script: "docker network ls --format '{{.Name}}' | grep ${networkName} || true",
                         returnStdout: true
                     ).trim()
 
-                    if (network) {
-                        echo "Connecting Jenkins container to Docker network: ${network}"
-                        sh "docker network connect ${network} jenkins || true"
+                    if (found) {
+                        echo "Connecting Jenkins to Docker network: ${networkName}"
+                        sh "docker network connect ${networkName} jenkins || true"
                     } else {
                         echo "❗ No matching docker network found. Smoke tests may fail."
                     }
@@ -65,9 +75,7 @@ pipeline {
         }
 
         stage('Cleanup') {
-            steps {
-                sh 'docker-compose down'
-            }
+            steps { sh 'docker-compose down' }
         }
     }
 
