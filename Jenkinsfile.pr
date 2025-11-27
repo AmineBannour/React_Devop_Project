@@ -35,7 +35,7 @@ pipeline {
                 script {
                     // Convert job name to lowercase and replace spaces with underscores (Docker's pattern)
                     def network = sh(
-                        script: "docker network ls --format '{{.Name}}' | grep ${env.JOB_NAME.toLowerCase().replaceAll(' ', '_')}_default || true",
+                        script: "docker network ls --format '{{.Name}}' | grep ${env.WORKSPACE.toLowerCase().replaceAll(' ', '_')}_default || true",
                         returnStdout: true
                     ).trim()
 
