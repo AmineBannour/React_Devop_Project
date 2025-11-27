@@ -1,7 +1,11 @@
 #!/bin/bash
 mkdir -p artifacts
 
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+URL="http://frontend/"   # Docker service name + internal port 80
+
+echo "Testing frontend at $URL"
+
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" $URL)
 
 if [ "$STATUS" -eq 200 ]; then
   echo "FRONTEND OK" > artifacts/frontend-smoke.txt
