@@ -1,22 +1,24 @@
 pipeline {
     agent any
 
-    environment {
-        TAG = "${env.GIT_TAG_NAME ?: env.BUILD_NUMBER}"
-    }
-
+    // This pipeline is meant to run on TAGS like v1.0.0 in a Multibranch job (Discover tags enabled)
     triggers {
+        // Check for new tags every 15 minutes
         pollSCM('H/15 * * * *')
     }
 
     stages {
 
         stage('Checkout') {
-            steps { checkout scm }
+            steps {
+                checkout scm
+            }
         }
 
         stage('Setup') {
-            steps { sh 'mkdir -p artifacts' }
+            steps {
+                sh 'mkdir -p artifacts'
+            }
         }
 
         stage('Build (Parallel)') {
@@ -24,25 +26,110 @@ pipeline {
 
                 stage('Node18 Runtime') {
                     steps {
-                        sh 'docker build --build-arg NODE_VERSION=18 -t mern-backend:${TAG}-node18 ./backend'
-                        sh 'docker build --build-arg NODE_VERSION=18 -t mern-frontend:${TAG}-node18 ./frontend'
+                        sh '''
+TAG="${BRANCH_NAME#refs/tags/}"
+echo "Building backend (Node 18) with tag: ${TAG}"
+docker build --build-arg NODE_VERSION=18 -t mern-backend:${TAG}-node18 ./backend
+
+echo "Building frontend (Node 18) with tag: ${TAG}"
+docker build --build-arg NODE_VERSION=18 -t mern-frontend:${TAG}-node18 ./frontend
+                        '''
                     }
                 }
 
                 stage('Node20 Runtime') {
                     steps {
-                        sh 'docker build --build-arg NODE_VERSION=20 -t mern-backend:${TAG}-node20 ./backend'
-                        sh 'docker build --build-arg NODE_VERSION=20 -t mern-frontend:${TAG}-node20 ./frontend'
+                        sh '''
+TAG="${BRANCH_NAME#refs/tags/}"
+echo "Building backend (Node 20) with tag: ${TAG}"
+docker build --build-arg NODE_VERSION=20 -t mern-backend:${TAG}-node20 ./backend
+
+echo "Building frontend (Node 20) with tag: ${TAG}"
+docker build --build-arg NODE_VERSION=20 -t mern-frontend:${TAG}-node20 ./frontend
+                        '''
                     }
                 }
             }
         }
 
+        stage('Run (Docker)') {
+            steps {
+                sh '''
+# Start stack with docker-compose (same as dev/pr)
+docker-compose up -d
+sleep 5
+                '''
+            }
+        }
+
+        stage('Connect Jenkins to Docker Network') {
+            steps {
+                script {
+                    // Example JOB_NAME: MERN-RELEASE/v1.0.0
+                    def raw = env.JOB_NAME
+
+                    // MERN-RELEASE/v1.0.0 -> mern-release_v1.0.0
+                    def cleaned = raw
+                        .replaceAll(' » ', '_')
+                        .replaceAll('/', '_')
+                        .replaceAll(' ', '_')
+                        .toLowerCase()
+
+                    // Final docker network name: mern-release_v1.0.0_default
+                    def networkName = "${cleaned}_default"
+
+                    echo "Searching for docker network: ${networkName}"
+
+                    def found = sh(
+                        script: "docker network ls --format '{{.Name}}' | grep ${networkName} || true",
+                        returnStdout: true
+                    ).trim()
+
+                    if (found) {
+                        echo "Connecting Jenkins container to Docker network: ${networkName}"
+                        sh "docker network connect ${networkName} jenkins || true"
+                    } else {
+                        echo "❗ No matching docker network found. Smoke tests may fail."
+                    }
+                }
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh '''
+chmod +x backend/smoke-test-backend.sh
+chmod +x frontend/smoke-test-frontend.sh
+
+./backend/smoke-test-backend.sh
+./frontend/smoke-test-frontend.sh
+                '''
+            }
+        }
+
         stage('Archive Artifacts') {
             steps {
-                sh "echo 'Release: ${TAG}' > artifacts/release.txt"
+                sh '''
+TAG="${BRANCH_NAME#refs/tags/}"
+echo "Release tag: ${TAG}" > artifacts/release.txt
+                '''
                 archiveArtifacts artifacts: 'artifacts/**', fingerprint: true
             }
+        }
+
+        stage('Cleanup') {
+            steps {
+                sh 'docker-compose down'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Release Pipeline PASSED for tag ${BRANCH_NAME#refs/tags/}"
+        }
+        failure {
+            echo "Release Pipeline FAILED for tag ${BRANCH_NAME#refs/tags/}"
         }
     }
 }
