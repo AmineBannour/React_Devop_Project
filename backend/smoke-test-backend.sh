@@ -2,9 +2,12 @@
 
 mkdir -p artifacts
 
-# Try 10 times because backend may take time to start
-for i in {1..10}; do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://backend:5000/)
+URL="http://backend:5000/"   # correct service name + correct port
+
+echo "Testing backend at $URL"
+
+for i in {1..20}; do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" $URL)
   echo "Attempt $i: status = $STATUS"
 
   if [ "$STATUS" -eq 200 ]; then
