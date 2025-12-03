@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import ProductCard from '../components/ProductCard';
-import './Home.css';
+import productController from '../controllers/productController';
+import '../styles/pages/Home.css';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -15,12 +15,18 @@ const Home = () => {
 
   const fetchProducts = async () => {
     try {
-      const [featuredRes, trendingRes] = await Promise.all([
-        axios.get('/api/products?sort=rating'),
-        axios.get('/api/products?sort=price-low')
+      const [featuredResult, trendingResult] = await Promise.all([
+        productController.fetchProducts({ sort: 'rating' }),
+        productController.fetchProducts({ sort: 'price-low' })
       ]);
-      setFeaturedProducts(featuredRes.data.slice(0, 8));
-      setTrendingProducts(trendingRes.data.slice(0, 8));
+      
+      if (featuredResult.success) {
+        setFeaturedProducts(featuredResult.data.slice(0, 8));
+      }
+      
+      if (trendingResult.success) {
+        setTrendingProducts(trendingResult.data.slice(0, 8));
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {

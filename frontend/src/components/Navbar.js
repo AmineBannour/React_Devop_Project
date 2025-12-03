@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
-import './Navbar.css';
+import '../styles/components/Navbar.css';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useContext(AuthContext);
@@ -49,6 +49,12 @@ const Navbar = () => {
           <div className="navbar-right">
             {isAuthenticated ? (
               <>
+                {user?.isAdmin && (
+                  <Link to="/admin" className="nav-link">
+                    <span className="nav-link-label">Admin</span>
+                    <span className="nav-link-text">Dashboard</span>
+                  </Link>
+                )}
                 <Link to="/profile" className="nav-link">
                   <span className="nav-link-label">Hello, {user?.name?.split(' ')[0]}</span>
                   <span className="nav-link-text">Account & Lists</span>

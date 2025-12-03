@@ -13,7 +13,8 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
-import './App.css';
+import AdminDashboard from './pages/AdminDashboard';
+import './styles/global/App.css';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/admin" element={<AdminDashboard />} />
               </Routes>
             </main>
             <BackToTopButton />

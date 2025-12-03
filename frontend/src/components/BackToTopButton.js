@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './BackToTopButton.css';
+import '../styles/components/BackToTopButton.css';
 
 const SCROLL_THRESHOLD = 300;
 

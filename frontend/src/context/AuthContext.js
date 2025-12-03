@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import userService from '../services/userService';
 
 export const AuthContext = createContext();
 
@@ -19,8 +20,8 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await axios.get('/api/users/profile');
-      setUser(res.data);
+      const userData = await userService.getProfile();
+      setUser(userData);
     } catch (error) {
       localStorage.removeItem('token');
       setToken(null);
@@ -32,8 +33,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post('/api/users/login', { email, password });
-      const { token: newToken, user: userData } = res.data;
+      const { token: newToken, user: userData } = await userService.login(email, password);
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
@@ -49,12 +49,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const res = await axios.post('/api/users/register', {
-        name,
-        email,
-        password
-      });
-      const { token: newToken, user: userData } = res.data;
+      const { token: newToken, user: userData } = await userService.register(name, email, password);
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);

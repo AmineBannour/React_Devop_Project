@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import './Profile.css';
+import '../styles/pages/Profile.css';
 
 const Profile = () => {
   const { isAuthenticated } = useContext(AuthContext);

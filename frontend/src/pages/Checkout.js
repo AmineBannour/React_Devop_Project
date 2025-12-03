@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import './Checkout.css';
+import '../styles/pages/Checkout.css';
 
 const Checkout = () => {
   const { isAuthenticated, user } = useContext(AuthContext);

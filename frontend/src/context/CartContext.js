@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
 import { AuthContext } from './AuthContext';
+import cartService from '../services/cartService';
 
 export const CartContext = createContext();
 
@@ -20,9 +20,9 @@ export const CartProvider = ({ children }) => {
 
   const fetchCart = async () => {
     try {
-      const res = await axios.get('/api/cart');
-      setCart(res.data);
-      const count = res.data.items.reduce((sum, item) => sum + item.quantity, 0);
+      const cartData = await cartService.getCart();
+      setCart(cartData);
+      const count = cartData.items.reduce((sum, item) => sum + item.quantity, 0);
       setCartCount(count);
     } catch (error) {
       console.error('Error fetching cart:', error);

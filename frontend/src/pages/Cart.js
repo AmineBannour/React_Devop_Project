@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
-import './Cart.css';
+import '../styles/pages/Cart.css';
 
 const Cart = () => {
   const { isAuthenticated, user } = useContext(AuthContext);

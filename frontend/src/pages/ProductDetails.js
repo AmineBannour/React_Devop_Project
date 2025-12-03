@@ -4,7 +4,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
 import ProductCard from '../components/ProductCard';
-import './ProductDetails.css';
+import '../styles/pages/ProductDetails.css';
 
 const ProductDetails = () => {
   const { id } = useParams();

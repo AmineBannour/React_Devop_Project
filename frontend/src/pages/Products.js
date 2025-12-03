@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import ProductCard from '../components/ProductCard';
-import './Products.css';
+import productController from '../controllers/productController';
+import '../styles/pages/Products.css';
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,59 +39,37 @@ const Products = () => {
 
   useEffect(() => {
     if (allProducts.length > 0) {
-      let filtered = [...allProducts];
-
-      // Filter by price range
-      if (filters.minPrice) {
-        const minPrice = parseFloat(filters.minPrice);
-        if (!isNaN(minPrice)) {
-          filtered = filtered.filter(product => product.price >= minPrice);
-        }
-      }
-      if (filters.maxPrice) {
-        const maxPrice = parseFloat(filters.maxPrice);
-        if (!isNaN(maxPrice)) {
-          filtered = filtered.filter(product => product.price <= maxPrice);
-        }
-      }
-
+      const filtered = productController.filterByPrice(
+        allProducts,
+        filters.minPrice,
+        filters.maxPrice
+      );
       setProducts(filtered);
     }
   }, [allProducts, filters.minPrice, filters.maxPrice]);
 
   const fetchProducts = async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (filters.category) params.append('category', filters.category);
-      if (filters.search) params.append('search', filters.search);
-      if (filters.sort) params.append('sort', filters.sort);
-
-      const res = await axios.get(`/api/products?${params.toString()}`);
-      setAllProducts(res.data);
-      
-      // Filter products by price after fetching
-      let filtered = [...res.data];
-      if (filters.minPrice) {
-        const minPrice = parseFloat(filters.minPrice);
-        if (!isNaN(minPrice)) {
-          filtered = filtered.filter(product => product.price >= minPrice);
-        }
-      }
-      if (filters.maxPrice) {
-        const maxPrice = parseFloat(filters.maxPrice);
-        if (!isNaN(maxPrice)) {
-          filtered = filtered.filter(product => product.price <= maxPrice);
-        }
-      }
+    const result = await productController.fetchProducts({
+      category: filters.category,
+      search: filters.search,
+      sort: filters.sort
+    });
+    
+    if (result.success) {
+      setAllProducts(result.data);
+      const filtered = productController.filterByPrice(
+        result.data,
+        filters.minPrice,
+        filters.maxPrice
+      );
       setProducts(filtered);
-    } catch (error) {
-      console.error('Error fetching products:', error);
+    } else {
+      console.error('Error fetching products:', result.message);
       setAllProducts([]);
       setProducts([]);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const categories = ['electronics', 'clothing', 'books', 'home', 'sports', 'toys'];
