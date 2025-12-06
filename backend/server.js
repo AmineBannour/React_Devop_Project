@@ -10,6 +10,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'E-commerce API Server',
+    version: '1.0.0',
+    endpoints: {
+      products: '/api/products',
+      users: '/api/users',
+      orders: '/api/orders',
+      cart: '/api/cart',
+      reviews: '/api/reviews'
+    }
+  });
+});
+
 // Routes
 app.use('/api/products', require('./routes/products'));
 app.use('/api/users', require('./routes/users'));

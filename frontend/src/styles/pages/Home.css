@@ -54,7 +54,7 @@
   justify-content: center;
 }
 
-.hero-placeholder {
+.hero-illustration {
   width: 100%;
   height: 300px;
   background: rgba(255, 255, 255, 0.1);
@@ -63,7 +63,35 @@
   align-items: center;
   justify-content: center;
   color: white;
-  opacity: 0.5;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-illustration::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-20px, -20px) rotate(5deg);
+  }
+}
+
+.hero-illustration svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 /* Products Section */
